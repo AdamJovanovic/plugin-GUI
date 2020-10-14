@@ -19,10 +19,10 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#pragma once
 
-
-#ifndef __BrainGridThread_H_2C4CBD67__
-#define __BrainGridThread_H_2C4CBD67__
+//#ifndef __BRAINGRIDTHREAD_H__
+//#define __BRAINGRIDTHREAD_H__
 
 #include <DataThreadHeaders.h>
 
@@ -36,7 +36,7 @@
 #include "rhythm-api/rhd2000datablock.h"
 #include "rhythm-api/okFrontPanelDLL.h"
 
-namespace BrainGridNode
+namespace BrainGrid
 {
 
 	class BrainGridThread : public DataThread, public Timer
@@ -58,7 +58,11 @@ namespace BrainGridNode
 		float getSampleRate(int subprocessor) const override;
 		float getBitVolts(const DataChannel* chan) const override;
 
+		void enableBoardLeds(bool enable);
+
 		GenericEditor* createEditor(SourceNode* sn);
+
+		static DataThread* createDataThread(SourceNode* sn);
 		
 	private:
 		void setDefaultChannelNames() override;
@@ -70,8 +74,21 @@ namespace BrainGridNode
 		bool startAcquisition() override;
 		bool stopAcquisition()  override;
 
+		ScopedPointer<Rhd2000EvalBoard> evalBoard;
+		String libraryFilePath;
+
+		bool openBoard(String pathToLibrary);
+		bool uploadBitfile(String pathToBitfile);
+		void initializeBoard();
+
+		bool deviceFound;
+		ScopedPointer<Rhd2000DataBlock> dataBlock;
+		unsigned int blockSize;
+		bool isTransmitting;
+		BrainGridThread* board;
+
 		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BrainGridThread);
 	};
 
 }
-#endif  // __BrainGridThread_H_2C4CBD67__
+//#endif  // __BRAINGRIDTHREAD_H__

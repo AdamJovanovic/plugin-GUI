@@ -17,7 +17,6 @@ add_sources(${PLUGIN_NAME}
 	BrainGridThread.h
 	BrainGridEditor.cpp
 	BrainGridEditor.h
-
 	)
 
 if (MSVC)

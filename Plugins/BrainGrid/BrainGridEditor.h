@@ -21,61 +21,32 @@
 
 */
 
-#ifndef __BrainGridEditor_H__
-#define __BrainGridEditor_H__
+#pragma once
 
-#include <VisualizerEditorHeaders.h>
-#include "BrainGridEditor.h"
-#include "BrainGridThread.h"
+//#ifndef __BRAINGRIDEDITOR_H__
+//#define __BRAINGRIDEDITOR_H__
 
-namespace BrainGridNode
+#include <EditorHeaders.h>
+
+namespace BrainGrid
 {
-    class BrainGridEditor;
-	class FPGAcanvas;
-
-    class FPGAcanvas : public Visualizer, public Button::Listener
-	{   //TO BE CHANGED LATER
-	public:
-		FPGAcanvas(GenericProcessor* n);
-		~FPGAcanvas();
-
-		void paint(Graphics& g);
-
-		void refresh();
-
-		void beginAnimation();
-		void endAnimation();
-
-		void refreshState();
-		void update();
-
-		void setParameter(int, float);
-		void setParameter(int, int, int, float);
-
-		void updateImpedance(Array<int> streams, Array<int> channels, Array<float> magnitude, Array<float> phase);
-
-		void resized();
-		void buttonClicked(Button* button);
-		ScopedPointer<Viewport> channelsViewport;
-		SourceNode* processor;
-	};
-
-
-    class BrainGridEditor: public VisualizerEditor, public ComboBox::Listener, public AsyncUpdater
+    class BrainGridThread;
+//public Label::Listener, public ComboBox::Listener, 
+    class BrainGridEditor: public GenericEditor//, public AsyncUpdater
     {
     public:
-        BrainGridEditor(GenericProcessor* parentNode, BrainGridThread* , bool useDefaultParameterEditors);
+        BrainGridEditor(GenericProcessor* parentNode, BrainGridThread* board_, bool useDefaultParameterEditors);
         ~BrainGridEditor(){}
 
+        void buttonEvent(Button* button);
 
-        void combBoxChanged(ComboBox* comboBox);
-        Visualizer* createNewCanvas();
+        //void combBoxChanged(ComboBox* comboBox);
 
-        void handleAsyncUpdate();
+        //void handleAsyncUpdate();
 
     private:
     //		OwnedArray<HeadstageOptionsInterface> headstageOptionsInterfaces;
-            OwnedArray<ElectrodeButton> electrodeButtons;
+    //        OwnedArray<ElectrodeButton> electrodeButtons;
 
     //		ScopedPointer<SampleRateInterface> sampleRateInterface;
     //		ScopedPointer<BandwidthInterface> bandwidthInterface;
@@ -90,12 +61,13 @@ namespace BrainGridNode
             ScopedPointer<UtilityButton> ledButton;
 
             ScopedPointer<UtilityButton> dspoffsetButton;
-            ScopedPointer<ComboBox> ttlSettleCombo, dacHPFcombo;
-
+            //ScopedPointer<ComboBox> ttlSettleCombo, dacHPFcombo;
 
             ScopedPointer<Label> audioLabel, ttlSettleLabel, dacHPFlabel;
+
+            BrainGridThread* board;
 
     };
 
 }
-#endif  // __BrainGridEditor_H__
+//#endif  // __BRAINGRIDEDITOR_H__

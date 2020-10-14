@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <PluginInfo.h>
 #include "BrainGridThread.h"
 #include <string>
+#include <iostream>
 #ifdef WIN32
 #include <Windows.h>
 #define EXPORT __declspec(dllexport)
@@ -44,12 +45,15 @@ extern "C" EXPORT void getLibInfo(Plugin::LibraryInfo* info)
 
 extern "C" EXPORT int getPluginInfo(int index, Plugin::PluginInfo* info)
 {
+	std::cout << "Exported the Create Datathread successfully" << std::endl;
 	switch (index)
 	{
 	case 0:
 		info->type = Plugin::PLUGIN_TYPE_DATA_THREAD;
-		info->dataThread.name = "BrainGrid FPGA";
-		info->dataThread.creator = &createDataThread<BrainGridNode::BrainGridThread>;
+		info->dataThread.name = "BrainGridFPGA";
+		std::cout << "Trying to access datathread" << std::endl;
+		info->dataThread.creator = &createDataThread<BrainGrid::BrainGridThread>;
+		std::cout << "We in...?" << std::endl;
 		break;
 	default:
 		return -1;
