@@ -13,6 +13,8 @@ add_sources(${PLUGIN_NAME}
 	rhythm-api/rhd2000evalboard.h
 	rhythm-api/rhd2000registers.cpp
 	rhythm-api/rhd2000registers.h
+	rhythm-api/braingridboard.h
+	rhythm-api/braingridboard.cpp
 	BrainGridThread.cpp
 	BrainGridThread.h
 	BrainGridEditor.cpp
