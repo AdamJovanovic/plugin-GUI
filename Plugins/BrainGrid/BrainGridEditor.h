@@ -32,13 +32,15 @@ namespace BrainGrid
 {
     class BrainGridThread;
 //public Label::Listener, public ComboBox::Listener, 
-    class BrainGridEditor: public GenericEditor//, public AsyncUpdater
+    
+    class BrainGridEditor: public GenericEditor//, public AsyncUpdater,
     {
     public:
         BrainGridEditor(GenericProcessor* parentNode, BrainGridThread* board_, bool useDefaultParameterEditors);
         ~BrainGridEditor(){}
 
         void buttonEvent(Button* button);
+        void sliderEvent(Slider* slider);
 
         //void combBoxChanged(ComboBox* comboBox);
 
@@ -60,6 +62,11 @@ namespace BrainGrid
             ScopedPointer<UtilityButton> adcButton;
             ScopedPointer<UtilityButton> ledButton;
 
+            ScopedPointer<UtilityButton> resetButton;
+            ScopedPointer<UtilityButton> startButton;
+
+            ScopedPointer<ThresholdSlider> sampleRateSlider;
+
             ScopedPointer<UtilityButton> dspoffsetButton;
             //ScopedPointer<ComboBox> ttlSettleCombo, dacHPFcombo;
 
@@ -68,6 +75,5 @@ namespace BrainGrid
             BrainGridThread* board;
 
     };
-
 }
 //#endif  // __BRAINGRIDEDITOR_H__

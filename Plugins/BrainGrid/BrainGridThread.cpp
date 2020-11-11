@@ -23,6 +23,7 @@
 
 #include "BrainGridThread.h"
 #include "BrainGridEditor.h"
+#include "rhythm-api/braingridboard.h"
 
 using namespace BrainGrid;
 
@@ -37,7 +38,7 @@ using namespace BrainGrid;
 #define okLIB_EXTENSION "*.so"
 #endif
 
-#define INIT_STEP ( evalBoard->isUSB3() ? 256 : 60)
+//#define INIT_STEP ( evalBoard->isUSB3() ? 256 : 60)
 
 DataThread* BrainGridThread::createDataThread(SourceNode *sn)
 {
@@ -45,7 +46,8 @@ DataThread* BrainGridThread::createDataThread(SourceNode *sn)
 }
 
 BrainGridThread::BrainGridThread(SourceNode *sn): DataThread(sn),
-    deviceFound(false)
+    deviceFound(false),
+    sampleRate(10000.0)
 {  
      std::cout << "BrainGridThread started: \
     \
@@ -68,8 +70,8 @@ BrainGridThread::BrainGridThread(SourceNode *sn): DataThread(sn),
     \
     \
     " << std::endl;
-    evalBoard = new Rhd2000EvalBoard;
-    sourceBuffers.add(new DataBuffer(2, 10000)); // start with 2 channels and automatically resize
+    braingridBoard = new BraingridBoard;
+    sourceBuffers.add(new DataBuffer(1, 10000)); // start with 2 channels and automatically resize
     File executable = File::getSpecialLocation(File::currentExecutableFile);
     const String executableDirectory = executable.getParentDirectory().getFullPathName();
     
@@ -78,16 +80,12 @@ BrainGridThread::BrainGridThread(SourceNode *sn): DataThread(sn),
     libraryFilePath += File::separatorString;
     libraryFilePath += okLIB_NAME;
 
-    if(openBoard(libraryFilePath))
+    if(openBoard())
     {
-        dataBlock = new Rhd2000DataBlock(1, evalBoard->isUSB3());
-
         initializeBoard();
-
-        if (evalBoard->isUSB3())
-        std::cout << "USB3 board mode enabled" << std::endl;
     } 
-    evalBoard->setSampleRate(Rhd2000EvalBoard::SampleRate30000Hz);
+
+    //evalBoard->setSampleRate(Rhd2000EvalBoard::SampleRate30000Hz);
     //Initialize FPGA
 }
 
@@ -105,18 +103,18 @@ bool BrainGridThread::foundInputSource()
 
 int BrainGridThread::getNumDataOutputs(DataChannel::DataChannelTypes type, int subProcessor) const
 {
-    return DataChannel::DataChannelTypes::HEADSTAGE_CHANNEL;
+    return 1;
 }
 
 unsigned int BrainGridThread::getNumSubProcessors() const
 {
-    return 8;
+    return 1;
 }
 
 int BrainGridThread::getNumTTLOutputs(int subprocessor) const
 {
     if (subprocessor > 0) return 0;
-    return 8;
+    return 0;
 }
 
 bool BrainGridThread::usesCustomNames() const
@@ -126,17 +124,39 @@ bool BrainGridThread::usesCustomNames() const
 
 float BrainGridThread::getSampleRate(int subprocessor) const
 {
-    return evalBoard->getSampleRate();
+    //TODO
+    return sampleRate;
+}
+
+bool BrainGridThread::setSampleRate(float aRate)
+{
+    sampleRate = aRate;
+    return true;
 }
 
 float BrainGridThread::getBitVolts(const DataChannel* chan) const
 {
-    return 1.0;
+    return 0.195f;
+}
+
+int BrainGridThread::getNumChannels() const
+{
+    return 1;
 }
 
 void BrainGridThread::enableBoardLeds(bool enable)
 {
-    evalBoard->enableBoardLeds(enable);
+    //evalBoard->enableBoardLeds(enable);
+}
+
+void BrainGridThread::resetBoard(bool toReset)
+{
+    braingridBoard->resetProcess(toReset);
+}
+
+void BrainGridThread::startBoard(bool toStart)
+{
+    braingridBoard->startProcess(toStart);
 }
 
 GenericEditor* BrainGridThread::createEditor(SourceNode *sn)
@@ -144,9 +164,9 @@ GenericEditor* BrainGridThread::createEditor(SourceNode *sn)
     return new BrainGridEditor(sn, this, true);
 }
 
-bool BrainGridThread::openBoard(String pathToLibrary)
+bool BrainGridThread::openBoard()
 {
-    int return_code = evalBoard->open(pathToLibrary.getCharPointer());
+    int return_code = braingridBoard->setup();
 
     if (return_code == 1)
     {
@@ -170,7 +190,7 @@ bool BrainGridThread::openBoard(String pathToLibrary)
             {
                 File currentFile = fc.getResult();
                 libraryFilePath = currentFile.getFullPathName();
-                openBoard(libraryFilePath); // call recursively
+                openBoard(); // call recursively
             }
             else
             {
@@ -193,7 +213,7 @@ bool BrainGridThread::openBoard(String pathToLibrary)
 
         if (response)
         {
-            openBoard(libraryFilePath.getCharPointer()); // call recursively
+            openBoard(); // call recursively
         }
         else
         {
@@ -211,11 +231,11 @@ bool BrainGridThread::uploadBitfile(String pathToBitfile)
 
     deviceFound = true;
 
-    if (!evalBoard->uploadFpgaBitfile(pathToBitfile.toStdString()))
+    if (!braingridBoard->uploadFPGABitfile(pathToBitfile.toStdString()))
     {
         std::cout << "Couldn't upload bitfile from " << pathToBitfile << std::endl;
 
-        bool response = AlertWindow::showOkCancelBox(AlertWindow::NoIcon,
+        /*bool response = AlertWindow::showOkCancelBox(AlertWindow::NoIcon,
                                                      "FPGA bitfile not found.",
                                                      (evalBoard->isUSB3() ?
                                                      "The rhd2000_usb3.bit file was not found in the directory of the executable. Would you like to browse for it?" :
@@ -246,6 +266,7 @@ bool BrainGridThread::uploadBitfile(String pathToBitfile)
         {
             deviceFound = false;
         }
+        */
 
     }
 
@@ -262,31 +283,14 @@ void BrainGridThread::initializeBoard()
 
     bitfilename = executableDirectory;
     bitfilename += File::separatorString;
-    bitfilename += evalBoard->isUSB3() ? "rhd2000_usb3.bit" : "rhd2000.bit";
+    bitfilename += "braingrid.bit";
 
     if (!uploadBitfile(bitfilename))
     {
         return;
     }
 
-    evalBoard->initialize();
-
-    //setSampleRate(Rhd2000EvalBoard::SampleRate30000Hz);
-
-    evalBoard->setMaxTimeStep(INIT_STEP);
-    evalBoard->setContinuousRunMode(false);
-
-    // Start SPI interface
-    evalBoard->run();
-
-    // Wait for the 60-sample run to complete
-    while (evalBoard->isRunning())
-    {
-        ;
-    }
-
-    int ledArray[8] = {1, 0, 0, 0, 0, 0, 0, 0};
-    evalBoard->setLedDisplay(ledArray);
+    //braingridBoard->initialize();
 }
 
 void BrainGridThread::setDefaultChannelNames()
@@ -296,54 +300,52 @@ void BrainGridThread::setDefaultChannelNames()
 
 bool BrainGridThread::updateBuffer()
 {
+    float* usbBuffer;
+    int numSamples = 1024;
+    
+    braingridBoard->readDataBlock(&usbBuffer, numSamples);
+    for(auto i=0; i<numSamples; ++i)
+    {
+        /*std::cout << usbBuffer[i] << ", ";
+        if(i%4 == 0)
+        {
+            std::cout << std::endl;
+        }*/
+    }
+
+    int numWritten = sourceBuffers[0]->addToBuffer(usbBuffer,&timestamps.getReference(0),&ttlEventWords.getReference(0),numSamples,numSamples);
+    if(numWritten != numSamples)
+    {
+        std::cout << "Numwritten: " << +numWritten << ", NumSamples: " << +numSamples << std::endl;
+        //std::raise(SIGTERM);
+    }
+    else
+    {
+        std::cout << "This is fine" << std::endl;
+    }
+    
+    
+    //BrainGridThread::stopAcquisition();
     return true;
 }
 
 void BrainGridThread::timerCallback()
 {
-
+    stopTimer();
 }
 
 bool BrainGridThread::startAcquisition()
 {
     
-    //impedanceThread->waitSafely();
-    dataBlock = new Rhd2000DataBlock(evalBoard->getNumEnabledDataStreams(), evalBoard->isUSB3());
-
+   
     //std::cout << "Expecting " << getNumChannels() << " channels." << std::endl;
 
     //memset(filter_states,0,256*sizeof(double));
 
-    int ledArray[8] = {1, 1, 0, 0, 0, 0, 0, 0};
-    evalBoard->setLedDisplay(ledArray);
-
-    cout << "Number of 16-bit words in FIFO: " << evalBoard->numWordsInFifo() << endl;
-    cout << "Is eval board running: " << evalBoard->isRunning() << endl;
-
-
     //std::cout << "Setting max timestep." << std::endl;
     //evalBoard->setMaxTimeStep(100);
-
-
-    std::cout << "Starting acquisition." << std::endl;
-    if (1)
-    {
-        // evalBoard->setContinuousRunMode(false);
-        //  evalBoard->setMaxTimeStep(0);
-        std::cout << "Flushing FIFO." << std::endl;
-        evalBoard->flush();
-        evalBoard->setContinuousRunMode(true);
-        //evalBoard->printFIFOmetrics();
-        evalBoard->run();
-        //evalBoard->printFIFOmetrics();
-    }
-
-    blockSize = dataBlock->calculateDataBlockSizeInWords(evalBoard->getNumEnabledDataStreams(), evalBoard->isUSB3());
-    std::cout << "Expecting blocksize of " << blockSize << " for " << evalBoard->getNumEnabledDataStreams() << " streams" << std::endl;
-    //evalBoard->printFIFOmetrics();
+    braingridBoard->startProcess(true);
     startThread();
-
-
     isTransmitting = true;
 
     return true;
@@ -353,8 +355,8 @@ bool BrainGridThread::stopAcquisition()
 {
 /* /*  */
         //  isTransmitting = false;
-    std::cout << "RHD2000 data thread stopping acquisition." << std::endl;
-
+    std::cout << "Stopping acquisition." << std::endl;
+    braingridBoard->startProcess(false);
     if (isThreadRunning())
     {
         signalThreadShouldExit();
@@ -369,31 +371,7 @@ bool BrainGridThread::stopAcquisition()
     {
         std::cout << "Thread failed to exit, continuing anyway..." << std::endl;
     }
-
-    if (deviceFound)
-    {
-        evalBoard->setContinuousRunMode(false);
-        evalBoard->setMaxTimeStep(0);
-        std::cout << "Flushing FIFO." << std::endl;
-        evalBoard->flush();
-        //   evalBoard->setContinuousRunMode(true);
-        //   evalBoard->run();
-
-    }
-
     sourceBuffers[0]->clear();
-
-    if (deviceFound)
-    {
-        cout << "Number of 16-bit words in FIFO: " << evalBoard->numWordsInFifo() << endl;
-
-        // std::cout << "Stopped eval board." << std::endl;
-
-
-        int ledArray[8] = {1, 0, 0, 0, 0, 0, 0, 0};
-        evalBoard->setLedDisplay(ledArray);
-    }
-
     isTransmitting = false;
     //dacOutputShouldChange = false;
     return true;

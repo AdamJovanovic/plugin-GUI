@@ -23,6 +23,7 @@
 
 #include "BrainGridEditor.h"
 #include <cmath>
+#include <stdio.h>
 
 #include "BrainGridThread.h"
 
@@ -44,15 +45,39 @@ BrainGridEditor::BrainGridEditor(GenericProcessor* parentNode,
     : GenericEditor(parentNode, useDefaultParameterEditors), board(board_)
 {
 
+    /*
     ledButton = new UtilityButton("LED", Font("Small Text", 13, Font::plain));
     ledButton->setRadius(3.0f);
-    ledButton->setBounds(50, 50, 50, 50);
+    ledButton->setBounds(80, 80, 20, 20);
     ledButton->addListener(this);
-    ledButton->setClickingTogglesState(true);
+    ledButton->setClickingTogglesState(false);
     ledButton->setTooltip("Toggle board LEDs");
     addAndMakeVisible(ledButton);
     ledButton->setToggleState(true, dontSendNotification);
-
+    */
+    resetButton = new UtilityButton("RESET", Font("Small Text", 13, Font::plain));
+    resetButton->setBounds(10,20,50,50);
+    resetButton->addListener(this);
+    resetButton->setClickingTogglesState(true);
+    resetButton->setTooltip("Toggles the Reset");
+    addAndMakeVisible(resetButton);
+    resetButton->setToggleState(true, dontSendNotification);
+    
+    startButton = new UtilityButton("START", Font("Small Text", 13, Font::plain));
+    startButton->setBounds(65,20,50,50);
+    startButton->addListener(this);
+    startButton->setClickingTogglesState(true);
+    startButton->setTooltip("Toggles the Reset");
+    addAndMakeVisible(startButton);
+    startButton->setToggleState(true, dontSendNotification);
+    /*
+    sampleRateSlider = new ThresholdSlider(Font::plain);
+    sampleRateSlider->setBounds(150,10,75,75);
+    addAndMakeVisible(sampleRateSlider);
+    sampleRateSlider->addListener(this);
+    sampleRateSlider->setActive(true);
+    sampleRateSlider->setRange(1000.0f, 30000.0f, 1000.0f);
+    */
 }
 
 void BrainGridEditor::buttonEvent(Button* button)
@@ -61,4 +86,20 @@ void BrainGridEditor::buttonEvent(Button* button)
     {
         board->enableBoardLeds(button->getToggleState());
     }
+    else if (button == resetButton)
+    {
+        board->resetBoard(button->getToggleState());
+        std::cout << "Reset Button state: " << button->getToggleState() << std::endl;
+    }
+    else if (button == startButton)
+    {
+        std::cout << "Start Button clicked. Ignore" << std::endl;
+    }
+    
+}
+
+void BrainGridEditor::sliderEvent(Slider* slider)
+{
+    board->setSampleRate(slider->getValue());
+    printf("Sample Rate has been set to %2f\n",slider->getValue());
 }

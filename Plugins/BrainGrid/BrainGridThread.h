@@ -30,10 +30,9 @@
 #include <string.h>
 #include <array>
 #include <atomic>
+#include <csignal>
 
-#include "rhythm-api/rhd2000evalboard.h"
-#include "rhythm-api/rhd2000registers.h"
-#include "rhythm-api/rhd2000datablock.h"
+#include "rhythm-api/braingridboard.h"
 #include "rhythm-api/okFrontPanelDLL.h"
 
 namespace BrainGrid
@@ -56,9 +55,14 @@ namespace BrainGrid
 		bool usesCustomNames() const override;
 
 		float getSampleRate(int subprocessor) const override;
+		bool setSampleRate(float aRate);
+
 		float getBitVolts(const DataChannel* chan) const override;
+		int getNumChannels() const;
 
 		void enableBoardLeds(bool enable);
+		void resetBoard(bool toReset);
+		void startBoard(bool toStart);
 
 		GenericEditor* createEditor(SourceNode* sn);
 
@@ -74,15 +78,15 @@ namespace BrainGrid
 		bool startAcquisition() override;
 		bool stopAcquisition()  override;
 
-		ScopedPointer<Rhd2000EvalBoard> evalBoard;
+		ScopedPointer<BraingridBoard> braingridBoard;
 		String libraryFilePath;
 
-		bool openBoard(String pathToLibrary);
+		bool openBoard();
 		bool uploadBitfile(String pathToBitfile);
 		void initializeBoard();
 
+		float sampleRate;
 		bool deviceFound;
-		ScopedPointer<Rhd2000DataBlock> dataBlock;
 		unsigned int blockSize;
 		bool isTransmitting;
 		BrainGridThread* board;
