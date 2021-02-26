@@ -60,9 +60,13 @@ namespace BrainGrid
 		float getBitVolts(const DataChannel* chan) const override;
 		int getNumChannels() const;
 
+		//int getNumInputs() const override;
+
 		void enableBoardLeds(bool enable);
 		void resetBoard(bool toReset);
 		void startBoard(bool toStart);
+
+		bool isChipCalibrated(void);
 
 		GenericEditor* createEditor(SourceNode* sn);
 
@@ -84,8 +88,11 @@ namespace BrainGrid
 		bool openBoard();
 		bool uploadBitfile(String pathToBitfile);
 		void initializeBoard();
-
+		void scanSPIPorts();
+		
 		float sampleRate;
+		int samplePeriodCount;
+		int currentBufferUpdate;
 		bool deviceFound;
 		unsigned int blockSize;
 		bool isTransmitting;

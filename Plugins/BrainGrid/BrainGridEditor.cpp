@@ -54,22 +54,36 @@ BrainGridEditor::BrainGridEditor(GenericProcessor* parentNode,
     ledButton->setTooltip("Toggle board LEDs");
     addAndMakeVisible(ledButton);
     ledButton->setToggleState(true, dontSendNotification);
-    */
+    */  
+
+    calibrationInterface = new CalibrationInterface(board, this);
+    addAndMakeVisible(calibrationInterface);
+    calibrationInterface->setBounds(6, 85, 65, 18);
+
+    recalibrateButton = new UtilityButton("RECALIBRATE", Font("Small Text", 13, Font::plain));
+    recalibrateButton->setBounds(6,108,65,18);
+    recalibrateButton->addListener(this);
+    recalibrateButton->setClickingTogglesState(false);
+    recalibrateButton->setTooltip("Recalibrate Chip");
+    addAndMakeVisible(recalibrateButton);
+
     resetButton = new UtilityButton("RESET", Font("Small Text", 13, Font::plain));
     resetButton->setBounds(10,20,50,50);
     resetButton->addListener(this);
     resetButton->setClickingTogglesState(true);
     resetButton->setTooltip("Toggles the Reset");
-    addAndMakeVisible(resetButton);
+    //addAndMakeVisible(resetButton);
     resetButton->setToggleState(true, dontSendNotification);
-    
+
     startButton = new UtilityButton("START", Font("Small Text", 13, Font::plain));
     startButton->setBounds(65,20,50,50);
     startButton->addListener(this);
     startButton->setClickingTogglesState(true);
     startButton->setTooltip("Toggles the Reset");
-    addAndMakeVisible(startButton);
+    //addAndMakeVisible(startButton);
     startButton->setToggleState(true, dontSendNotification);
+
+
     /*
     sampleRateSlider = new ThresholdSlider(Font::plain);
     sampleRateSlider->setBounds(150,10,75,75);
@@ -93,7 +107,8 @@ void BrainGridEditor::buttonEvent(Button* button)
     }
     else if (button == startButton)
     {
-        std::cout << "Start Button clicked. Ignore" << std::endl;
+        board->startBoard(button->getToggleState());
+        std::cout << "Start Button clicked. state: " << button->getToggleState() << std::endl;
     }
     
 }
@@ -102,4 +117,77 @@ void BrainGridEditor::sliderEvent(Slider* slider)
 {
     board->setSampleRate(slider->getValue());
     printf("Sample Rate has been set to %2f\n",slider->getValue());
+}
+
+// Calibration Interface -----------------------------------------------------------
+
+CalibrationInterface::CalibrationInterface(BrainGridThread* board_,
+                                            BrainGridEditor* editor_) :
+    isCalibrated(false), board(board_), editor(editor_)
+{
+
+    name = "Calibrated";
+
+    button = new UtilityButton(" ", Font("Small Text", 13, Font::plain));
+    button->setRadius(3.0f);
+    button->setBounds(6,80,65,18);
+    button->setEnabledState(false);
+    button->setCorners(true, true, true, true);
+    button->addListener(this);
+    addAndMakeVisible(button);
+
+    checkCalibrationState();
+}
+
+CalibrationInterface::~CalibrationInterface()
+{
+
+}
+
+void CalibrationInterface::checkCalibrationState()
+{
+    isCalibrated = board->isChipCalibrated();
+
+    if(isCalibrated == true)
+    {
+        button->setLabel("True");
+        button->setEnabledState(true);
+    }
+    else
+    {
+        button->setLabel("False");
+        button->setEnabledState(false);
+    }
+    
+    repaint();
+
+}
+
+void CalibrationInterface::buttonClicked(Button* button_)
+{
+    if(!(editor->acquisitionIsActive) && board->foundInputSource())
+    {
+        if(button_ == button)
+        {
+            checkCalibrationState();
+            CoreServices::updateSignalChain(editor);
+        }
+    }
+}
+
+void CalibrationInterface::paint(Graphics& g)
+{
+    g.setColour(Colours::lightgrey);
+
+    g.fillRoundedRectangle(5,0,getWidth()-10,getHeight(),4.0f);
+
+    if (isCalibrated)
+        g.setColour(Colours::black);
+    else
+        g.setColour(Colours::grey);
+
+    g.setFont(Font("Small Text", 15, Font::plain));
+
+    g.drawText(name, 8, 2, 200, 15, Justification::left, false);
+
 }

@@ -5,6 +5,10 @@
 
 BraingridBoard::BraingridBoard()
 {
+    rawFileName = "data_record.csv";
+    rawData.open(rawFileName,std::ios::out);
+    rawData << "Data\n";
+    rawData.close();
     //TODO
 }
 
@@ -60,6 +64,11 @@ int BraingridBoard::setup()
     std::cout << "Opal Kelly device serial number: " << dev->GetSerialNumber().c_str() << std::endl;
     std::cout << "Opal Kelly device ID string: " << dev->GetDeviceID().c_str() << std::endl << std::endl;
     return 1;
+}
+
+void BraingridBoard::resetFPGA()
+{
+    ParseError(dev->ResetFPGA());
 }
 
 bool BraingridBoard::uploadFPGABitfile(std::string bitfilePath)
@@ -120,23 +129,68 @@ bool BraingridBoard::startProcess(bool toStart)
     }
 }
 
+bool is_file_empty(std::ifstream& pFile)
+{
+    return pFile.peek() == std::ifstream::traits_type::eof();
+}
+
 bool BraingridBoard::readDataBlock(float** bufferPtr, int numSamples)
 {
-    int blockSize = USB3_BLOCK_SIZE;
+    int blockSize = 8192;//USB3_BLOCK_SIZE;
     long length = numSamples <= USB_BUFFER_SIZE ? numSamples : USB_BUFFER_SIZE;
     float* usbBuff;
     usbBuff = (float*)malloc(sizeof(float)*length);
     long error = dev->ReadFromBlockPipeOut(BlockPipeOut_01, blockSize, length, usbBuffer);
     ParseError(static_cast<okCFrontPanel::ErrorCode>(error));
+    
+    rawData.open(rawFileName, std::ios::out | std::ios::app);
 
     for(size_t i = 0; i < length; ++i)
     {
-        usbBuff[i] = static_cast<float>(usbBuffer[i]/4.0);
-        
+        usbBuff[i] = static_cast<float>(usbBuffer[i]);///4.0);
+        if(i < length-1)
+        {
+            rawData << usbBuff[i] << '\n';
+        }
+        //UNCOMMENT TO DEBUG INCOMING DATA FROM FPGA: 
+        //if(usbBuff[i]) std::cout << "Number is: " << usbBuff[i] << std::endl;
     }
+    rawData.close();
     *bufferPtr = usbBuff;
     free(usbBuff);
     return true;
+}
+
+bool BraingridBoard::isCalibrated()
+{
+    //TODO: IMPLEMENT THIS
+    return true;
+}
+
+void BraingridBoard::SendStart()
+{
+    dev->SetWireInValue(0x02, 0xFFFFFFFF, 0xFFFFFFFF);
+    dev->UpdateWireIns(); 
+}
+
+void BraingridBoard::SendStop()
+{
+    dev->SetWireInValue(0x02, 0x00000000, 0xFFFFFFFF);
+    dev->UpdateWireIns();
+}
+
+void BraingridBoard::SendByte(char c)
+{
+    dev->SetWireInValue(0x03, c, 0xFF);
+    dev->UpdateWireIns();
+    dev->ActivateTriggerIn(OkEndPointAddresses::TriggerIn_01, TriggerBits::ByteReady); 
+}
+
+void BraingridBoard::RecvByte()
+{
+    dev->UpdateWireOuts();
+    unsigned long outValue = dev->GetWireOutValue(OkEndPointAddresses::WireOut_Debug_Sigs);
+    std::cout << outValue << std::endl;
 }
 
 bool BraingridBoard::ParseError(okCFrontPanel::ErrorCode error)

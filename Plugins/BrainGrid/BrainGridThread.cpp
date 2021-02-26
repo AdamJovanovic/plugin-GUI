@@ -47,31 +47,12 @@ DataThread* BrainGridThread::createDataThread(SourceNode *sn)
 
 BrainGridThread::BrainGridThread(SourceNode *sn): DataThread(sn),
     deviceFound(false),
-    sampleRate(10000.0)
+    sampleRate(16384.0), 
+    currentBufferUpdate(0)
 {  
-     std::cout << "BrainGridThread started: \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    \
-    " << std::endl;
+    std::cout << "BrainGridThread started: " << std::endl;
     braingridBoard = new BraingridBoard;
-    sourceBuffers.add(new DataBuffer(1, 10000)); // start with 2 channels and automatically resize
+    sourceBuffers.add(new DataBuffer(3, 30000)); // start with 2 channels and automatically resize
     File executable = File::getSpecialLocation(File::currentExecutableFile);
     const String executableDirectory = executable.getParentDirectory().getFullPathName();
     
@@ -92,7 +73,10 @@ BrainGridThread::BrainGridThread(SourceNode *sn): DataThread(sn),
 BrainGridThread::~BrainGridThread()
 {
     std::cout << "BrainGrid interface destroyed." << std::endl;
-
+    if(deviceFound)
+    {
+        braingridBoard->resetFPGA();
+    }
     //TODO:
 }
 
@@ -157,6 +141,11 @@ void BrainGridThread::resetBoard(bool toReset)
 void BrainGridThread::startBoard(bool toStart)
 {
     braingridBoard->startProcess(toStart);
+}
+
+bool BrainGridThread::isChipCalibrated(void)
+{
+    return braingridBoard->isCalibrated();
 }
 
 GenericEditor* BrainGridThread::createEditor(SourceNode *sn)
@@ -293,6 +282,12 @@ void BrainGridThread::initializeBoard()
     //braingridBoard->initialize();
 }
 
+//
+void BrainGridThread::scanSPIPorts()
+{
+
+}
+
 void BrainGridThread::setDefaultChannelNames()
 {
 
@@ -301,19 +296,23 @@ void BrainGridThread::setDefaultChannelNames()
 bool BrainGridThread::updateBuffer()
 {
     float* usbBuffer;
-    int numSamples = 1024;
+    int numSamples = 16384;
     
     braingridBoard->readDataBlock(&usbBuffer, numSamples);
+    
     for(auto i=0; i<numSamples; ++i)
     {
-        /*std::cout << usbBuffer[i] << ", ";
+        std::cout << usbBuffer[i] << ", ";
         if(i%4 == 0)
         {
             std::cout << std::endl;
-        }*/
+        }
     }
+    
 
     int numWritten = sourceBuffers[0]->addToBuffer(usbBuffer,&timestamps.getReference(0),&ttlEventWords.getReference(0),numSamples,numSamples);
+    
+    /*
     if(numWritten != numSamples)
     {
         std::cout << "Numwritten: " << +numWritten << ", NumSamples: " << +numSamples << std::endl;
@@ -323,6 +322,8 @@ bool BrainGridThread::updateBuffer()
     {
         std::cout << "This is fine" << std::endl;
     }
+    */
+    //std::cout << currentBufferUpdate++ << std::endl;
     
     
     //BrainGridThread::stopAcquisition();

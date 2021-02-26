@@ -31,6 +31,7 @@
 namespace BrainGrid
 {
     class BrainGridThread;
+    class CalibrationInterface;
 //public Label::Listener, public ComboBox::Listener, 
     
     class BrainGridEditor: public GenericEditor//, public AsyncUpdater,
@@ -47,33 +48,43 @@ namespace BrainGrid
         //void handleAsyncUpdate();
 
     private:
-    //		OwnedArray<HeadstageOptionsInterface> headstageOptionsInterfaces;
-    //        OwnedArray<ElectrodeButton> electrodeButtons;
-
-    //		ScopedPointer<SampleRateInterface> sampleRateInterface;
-    //		ScopedPointer<BandwidthInterface> bandwidthInterface;
-    //		ScopedPointer<DSPInterface> dspInterface;
-
-    //		ScopedPointer<AudioInterface> audioInterface;
-    //		ScopedPointer<ClockDivideInterface> clockInterface;
-
-            ScopedPointer<UtilityButton> rescanButton, dacTTLButton;
-            ScopedPointer<UtilityButton> auxButton;
-            ScopedPointer<UtilityButton> adcButton;
+            ScopedPointer<CalibrationInterface> calibrationInterface;
             ScopedPointer<UtilityButton> ledButton;
-
             ScopedPointer<UtilityButton> resetButton;
             ScopedPointer<UtilityButton> startButton;
+            ScopedPointer<UtilityButton> recalibrateButton;
 
             ScopedPointer<ThresholdSlider> sampleRateSlider;
-
-            ScopedPointer<UtilityButton> dspoffsetButton;
-            //ScopedPointer<ComboBox> ttlSettleCombo, dacHPFcombo;
 
             ScopedPointer<Label> audioLabel, ttlSettleLabel, dacHPFlabel;
 
             BrainGridThread* board;
 
     };
+
+    class CalibrationInterface : public Component,
+		public Button::Listener
+	{
+	public:
+		CalibrationInterface(BrainGridThread*, BrainGridEditor*);
+		~CalibrationInterface();
+
+		void paint(Graphics& g);
+
+		void buttonClicked(Button* button_);
+
+		void checkCalibrationState();
+
+	private:
+
+		bool isCalibrated;
+		String name;
+
+		BrainGridThread* board;
+		BrainGridEditor* editor;
+
+		ScopedPointer<UtilityButton> button;
+
+	};
 }
 //#endif  // __BRAINGRIDEDITOR_H__
